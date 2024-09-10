@@ -1,0 +1,59 @@
+/node_modules# OS-specific files #
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Node.js and npm #
+node_modules/
+npm-debug.log
+yarn-error.log
+*.log
+
+# IDEs and Editors #
+
+# VS Code
+.vscode/
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+.vscode/*.code-workspace
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# JetBrains
+.idea/
+*.iml
+
+# Python-related #
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+env/
+venv/
+ENV/
+
+# Environment Variables #
+.env
+.env.*
