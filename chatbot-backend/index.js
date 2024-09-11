@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import sequelize from './db.js';
 import patientRoutes from './routes/api.patients.js';
 import userRoutes from './routes/api.users.js'
+import testRoutes from './routes/api.test.js'
 import SocketService from './services/socketService.js';
 
 dotenv.config();
@@ -19,6 +20,7 @@ app.use(express.json());
 
 app.use('/api/patients', patientRoutes);
 app.use('/api/users',userRoutes );
+app.use('/api/test',testRoutes );
 
 app.get('/', (req, res) => {
   res.send('Api is running');

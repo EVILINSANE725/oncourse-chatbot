@@ -40,9 +40,8 @@ router.post('/add', async (req, res) => {
 
 router.post('/create-new-patient-with-ai', async (req, res) => {
   try {
-
     const patient = await createPatientWithGpt()
-    res.status(201).json({"message":"done"}); 
+    res.status(201).json(patient); 
 
   } catch (error) {
     console.log(error)
