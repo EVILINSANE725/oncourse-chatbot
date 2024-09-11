@@ -1,6 +1,7 @@
 import express from 'express';
 import Patient from '../models/Patient.js';
 import _  from 'lodash';
+import { createPatientWithGpt } from '../handlers/patientHandler.js';
 
 const router = express.Router();
 
@@ -35,5 +36,24 @@ router.post('/add', async (req, res) => {
     }); 
   }
 });
+
+
+router.post('/create-new-patient-with-ai', async (req, res) => {
+  try {
+
+    const patient = await createPatientWithGpt()
+    res.status(201).json({"message":"done"}); 
+
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ 
+      error: 'Internal Server Error' ,
+      message:error
+
+    }); 
+  }
+});
+
+
 
 export default router;
