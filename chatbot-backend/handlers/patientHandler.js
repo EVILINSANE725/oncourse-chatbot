@@ -1,7 +1,7 @@
 import Patient from "../models/Patient.js";
 import { z } from "zod";
-import openai from "../services/openapiCaller.js";
 import { zodFunction } from "openai/helpers/zod";
+import openai from "../services/openapiCaller.js";
 
 const patientParameters = z.object({
     name: z.string().describe("Patient's name, typical Indian names"),
@@ -18,7 +18,6 @@ const createPatientTools = [
 ];
 
 export const createPatientWithGpt = async () => {
-
   const messages = [
     {
       role: "system",

@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { getPatientById } from '../handlers/patientHandler.js';
+import { createPatientWithGpt, getPatientById } from '../handlers/patientHandler.js';
 import { handleChatProcessing, handleEvaluateDiagnosis, handleEvaluateTest } from '../handlers/chatHandler.js';
 
 class SocketService {
@@ -38,6 +38,12 @@ class SocketService {
       });
       socket.on("get_new_patient",(patient_id)=>{
         getPatientById(patient_id).then((response)=>{
+         socket.emit('patient_details',response)
+        })
+      })
+
+      socket.on("get_new_patient_from_gpt",(patient_id)=>{
+        createPatientWithGpt().then((response)=>{
          socket.emit('patient_details',response)
         })
       })

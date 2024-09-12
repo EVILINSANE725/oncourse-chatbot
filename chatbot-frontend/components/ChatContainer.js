@@ -6,7 +6,7 @@ const ChatContainer = ({ patientPrompt, messages, waitingForResponse }) => {
   const scrollViewRef = useRef();
 
   useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true }); // Scroll to the last message
+    scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
 
   return (

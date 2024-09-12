@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "chatbot-frontend",
-    "slug": "chatbot-frontend",
+    "name": "Oncourse OPD",
+    "slug": "oncourse-opd",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "oncose-opd",

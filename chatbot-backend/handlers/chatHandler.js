@@ -172,6 +172,8 @@ export const handleEvaluateDiagnosis = async (message) => {
       response.choices[0].message.tool_calls?.[0]?.function?.arguments
     );
 
+    
+
     const nextMessage = {
       role: "assistant",
       content: responseParams.next_prompt,
