@@ -55,13 +55,19 @@ const createPatientTemplate = (patientDetails) => {
 };
 
 const testParameters = z.object({
-  is_correct: z.boolean("Is Answer Given By The User Correct"),
-  no_of_attempts: z.number().describe("No Of Attempts Taken By User So Far"),
-  test_name: z.string().describe("Name Of The Correct Test"),
+  is_correct: z.boolean("Is the answer given by the user correct"),
+  no_of_attempts: z
+    .number()
+    .describe("Number of attempts taken by the user so far"),
+  test_name: z.string().describe("Name of the correct test"),
   test_results: z
     .string()
-    .describe("If Test Is Perfomed What Will Be Result Of The Test"),
-  next_prompt: z.string().describe("Prompt Response Of The Doctor"),
+    .describe("If the test is performed, what will be the result of the test"),
+  next_prompt: z
+    .string()
+    .describe(
+      "Prompt response from the AI doctor. If the answer is correct, always ask 'What differential diagnoses will you perform?'"
+    ),
 });
 
 const testStageTemplate = () => {
@@ -78,6 +84,36 @@ const testStageTemplate = () => {
 const createTestStageTools = [
   zodFunction({ name: "dignostic_test", parameters: testParameters }),
 ];
+
+const diagnosisStageTemplate = () => {
+  const systemPrompt = `
+   You are a senior AI doctor guiding a medical student in providing a diagnosis based on the patient's symptoms and test results. The user will give a diagnosis, and you will evaluate whether it's correct or incorrect. If the diagnosis is wrong, provide the user with a hint or further clarification, and ask for another diagnosis.
+
+   Example prompts:
+   **if the diagnosis is correct**: "Excellent diagnosis, Doctor! The patient's symptoms and test results suggest [correct diagnosis]. [game over message]"
+   
+   **if the diagnosis is incorrect**: "I see why you might think that, but based on the patient's test results and symptoms, I don't think that's the correct diagnosis. Consider the patient's history of smoking and weight loss—what could be causing these symptoms? Would you like to suggest another diagnosis?"
+  `;
+  return systemPrompt;
+};
+
+const diagnosisParameters = z.object({
+  is_correct_dignoses: z
+    .boolean()
+    .describe("Is the diagnosis provided by the user correct"),
+  no_of_attempts: z.number().describe("Number of attempts made by the user"),
+  diagnosis: z.string().describe("The correct diagnosis"),
+  next_prompt: z
+    .string()
+    .describe("If the answer is correct give Congratulations message as game is finished"),
+});
+
+const createDiagnosisStageTools = [
+  zodFunction({ name: "diagnosis", parameters: diagnosisParameters }),
+];
+
+
+
 export const handleEvaluateTest = async (message) => {
   let model = {};
   let { messages } = message;
@@ -92,26 +128,26 @@ export const handleEvaluateTest = async (message) => {
       response.choices[0].message.tool_calls?.[0]?.function?.arguments
     );
 
-    if (!responseParams.is_correct && responseParams.attempts > 5) {
-      return { error: "Max attempts reached. Test failed." };
-    }
-
     const nextMessage = {
       role: "assistant",
       content: responseParams.next_prompt,
       ...responseParams,
     };
-    if(responseParams.is_correct){
-      nextMessage.points = getScoreBasedOnAttempts(responseParams.no_of_attempts)
-    }
-    messages.push(nextMessage);
 
     if (responseParams.is_correct) {
-      model.STAGE = "DIAGNOSIS"; 
+      nextMessage.points = getScoreBasedOnAttempts(
+        responseParams.no_of_attempts
+      );
+      model.treatment_points = nextMessage.points
+      model.STAGE = "DIAGNOSIS";
+    } else if (responseParams.no_of_attempts >= 5) {
+      model.STAGE = "GAME_OVER";
+      model.REASON = "MAX_ATTEMPTS_REACHED";
     }
 
+    messages.push(nextMessage);
     model.messages = messages;
-    console.log(model,"modeleelel")
+
     return model;
   } catch (error) {
     console.error("Error in evaluating test:", error);
@@ -119,9 +155,53 @@ export const handleEvaluateTest = async (message) => {
   }
 };
 
-const gameOver = () => {};
+export const handleEvaluateDiagnosis = async (message) => {
+  let model = {};
+  let { messages } = message;
 
-const getScoreBasedOnAttempts = (attemts) => {
+  messages[0] = { role: "system", content: diagnosisStageTemplate() };
+  messages.push(message.message);
+
+  try {
+    const response = await getChatGptResponse(
+      messages,
+      createDiagnosisStageTools
+    );
+
+    const responseParams = JSON.parse(
+      response.choices[0].message.tool_calls?.[0]?.function?.arguments
+    );
+
+    const nextMessage = {
+      role: "assistant",
+      content: responseParams.next_prompt,
+      ...responseParams,
+    };
+
+    if (responseParams.is_correct_dignoses) {
+      nextMessage.points = getScoreBasedOnAttempts(
+        responseParams.no_of_attempts
+      );
+      model.treatment_points = nextMessage.points
+      model.STAGE = "GAME_OVER";
+      model.REASON = "WIN";
+      model.diagnosis_points = nextMessage.points;
+    } else if (responseParams.no_of_attempts >= 5) {
+      model.STAGE = "GAME_OVER";
+      model.REASON = "MAX_ATTEMPTS_REACHED";
+    }
+
+    messages.push(nextMessage);
+    model.messages = messages;
+
+    return model;
+  } catch (error) {
+    console.error("Error in evaluating diagnosis:", error);
+    return { error: "An error occurred during the diagnosis evaluation." };
+  }
+};
+
+const getScoreBasedOnAttempts = (attempts) => {
   let MAX_MARKS = 5;
-  return MAX_MARKS - (attemts - 1);
+  return MAX_MARKS - (attempts - 1);
 };

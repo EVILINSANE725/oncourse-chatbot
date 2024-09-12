@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { getPatientById } from '../handlers/patientHandler.js';
-import { handleChatProcessing, handleEvaluateTest } from '../handlers/chatHandler.js';
+import { handleChatProcessing, handleEvaluateDiagnosis, handleEvaluateTest } from '../handlers/chatHandler.js';
 
 class SocketService {
   constructor(server) {
@@ -21,6 +21,13 @@ class SocketService {
         handleEvaluateTest(message).then((response)=>{
           socket.emit("assistant_message",response)
 
+        })
+      });
+
+      socket.on('user_message_DIAGNOSIS', (message) => {
+        console.log(message,"message")
+        handleEvaluateDiagnosis(message).then((response)=>{
+          socket.emit("assistant_message",response)
         })
       });
       
