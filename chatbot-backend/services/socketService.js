@@ -1,4 +1,6 @@
 import { Server } from 'socket.io';
+import { getPatientById } from '../handlers/patientHandler.js';
+import { handleChatProcessing, handleEvaluateTest } from '../handlers/chatHandler.js';
 
 class SocketService {
   constructor(server) {
@@ -14,6 +16,24 @@ class SocketService {
         console.log('A user disconnected');
       });
 
+      socket.on('user_message_TEST', (message) => {
+        console.log(message,"message")
+        handleEvaluateTest(message).then((response)=>{
+          socket.emit("assistant_message",response)
+
+        })
+      });
+      
+      socket.on('start_game', (message) => {
+        handleChatProcessing(message).then((response)=>{
+          socket.emit("assistant_message",response)
+        })
+      });
+      socket.on("get_new_patient",(patient_id)=>{
+        getPatientById(patient_id).then((response)=>{
+         socket.emit('patient_details',response)
+        })
+      })
       socket.on('user_message', (message) => {
         console.log('A user disconnected');
       });

@@ -40,3 +40,8 @@ export const createPatientWithGpt = async () => {
     console.error("error in creating patient:", error);
   }
 };
+
+export const getPatientById = async (patient_id)=>{
+  return await Patient.findByPk(patient_id)
+  
+}

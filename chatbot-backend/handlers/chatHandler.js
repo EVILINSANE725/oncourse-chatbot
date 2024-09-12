@@ -1,35 +1,40 @@
 import openai from "../services/openapiCaller.js";
 import Patient from "../models/Patient.js";
 
-export const handleChatProcessing = async (message) => {
-  let patient = await Patient.findByPk("2");
-  const messages = [];
-  messages.push({
-    role: "system",
-    content: createPatientTemplate(patient),
-  });
+import { z } from "zod";
+import { zodFunction } from "openai/helpers/zod";
 
+export const handleChatProcessing = async (message) => {
+  let model = {};
+  let patient = await Patient.findByPk(message.patientId);
+  const messages = message.messages;
+  if (messages.length == 0) {
+    messages.push({
+      role: "system",
+      content: createPatientTemplate(patient),
+    });
+  }
   let response = await getChatGptResponse(messages);
-  console.log(JSON.stringify(response))
-  return "done"
+
+  let latestMessage = response.choices[0].message;
+  messages.push(latestMessage);
+  model.messages = messages;
+  model.STAGE = "TEST";
+  return { ...model };
 };
 
-const getChatGptResponse = async (messages) => {
+const getChatGptResponse = async (messages, tools) => {
   const response = await openai.chat.completions.create({
     messages,
     model: "gpt-4",
+    tools,
   });
-  return response
+  return response;
 };
 
 const createPatientTemplate = (patientDetails) => {
   const systemTemplate = `
-  You are a senior AI doctor assisting a medical student in diagnosing a patient. The interaction should be in a back-and-forth format, where the student (YOU) suggests diagnostic tests or treatments, and you (SENIOR DOCTOR) provide feedback or further instructions. Use the following structure:
-
-  - "YOU": Represents the student's input, e.g., "Please run an X-ray test."
-  - "SENIOR DOCTOR": Your feedback or response, e.g., "Great choice, Doctor! Here are the results from the report."
-
-  The response should include the patient details and guide the student step by step. Be encouraging and educational.
+  You are a senior AI doctor guiding a medical student in choosing and interpreting diagnostic tests. The interaction should focus on selecting appropriate tests based on patient symptoms and history. 
 
   Here are the patient's details:
 
@@ -39,37 +44,84 @@ const createPatientTemplate = (patientDetails) => {
   - **Symptoms**: ${patientDetails.symptoms}
   - **Additional Info**: ${patientDetails.additionalInfo}
 
-  Start by stating the patient's condition, then ask the student which test they want to run. Once they choose a test, respond as follows:
+  Start By Providing Details Of Patient to Doctor . In last add a line Which Test Would You Perform ? Just Explain Details In First Prompt. Use Below Example
 
-  "SENIOR DOCTOR: Great choice, Doctor! Here are the results from the report:"
+  **Most important** Do Not Give Hint To The Testee Just Tell About Patient And Let Him Guess
 
-  Include test results in a realistic medical context. For example, if an X-ray is chosen, the response could be:
-  " XRAY Shows a mass in the upper lobe of the right lung."
-
-  Then ask:
-  "SENIOR DOCTOR: What is the differential diagnosis we should be considering?"
-
-  Let's begin with patient details and the first question.
+  - **Example** The patient is a 60-year-old male with a history of smoking. He presents with a cough and unintentional weight loss. These symptoms warrant further investigation. Let's go to the lab to diagnose further. What test should we run? 
   `;
 
   return systemTemplate;
 };
 
+const testParameters = z.object({
+  is_correct: z.boolean("Is Answer Given By The User Correct"),
+  no_of_attempts: z.number().describe("No Of Attempts Taken By User So Far"),
+  test_name: z.string().describe("Name Of The Correct Test"),
+  test_results: z
+    .string()
+    .describe("If Test Is Perfomed What Will Be Result Of The Test"),
+  next_prompt: z.string().describe("Prompt Response Of The Doctor"),
+});
 
+const testStageTemplate = () => {
+  const systemPrompt = `
+   You are a senior AI doctor guiding a medical student in choosing and interpreting diagnostic tests User Will Provide You The Test You Need To Interpret Weather Test Is Right Or Wrong And Give next_prompt and Other Parameters. 
 
-
-const scoreTest = (answer, isCorrect) => {
-  let points = isCorrect ? 5 : 0;
-  if (!isCorrect) {
-    points--; 
-  }
-  return points;
+   example of next promts
+   **if answer is correct** Great choice, Doctor! Here are the results from the report:
+   **if wrong answer** I understand your thinking, but a Complete Blood Count (CBC) might not give us the most relevant information for this case. \n\nRemember, the patient is presenting with a cough and weight loss, and has a history of smoking. These symptoms suggest we should focus on imaging the respiratory system.  Consider what test would allow us to visualize any potential abnormalities in the lungs. Would you like to suggest another test? 
+  `;
+  return systemPrompt;
 };
 
-const scoreDiagnosis = (answer, isCorrect) => {
-  let points = isCorrect ? 5 : 0;
-  if (!isCorrect) {
-    points -= 2;
+const createTestStageTools = [
+  zodFunction({ name: "dignostic_test", parameters: testParameters }),
+];
+export const handleEvaluateTest = async (message) => {
+  let model = {};
+  let { messages } = message;
+
+  messages[0] = { role: "system", content: testStageTemplate() };
+  messages.push(message.message);
+
+  try {
+    const response = await getChatGptResponse(messages, createTestStageTools);
+
+    const responseParams = JSON.parse(
+      response.choices[0].message.tool_calls?.[0]?.function?.arguments
+    );
+
+    if (!responseParams.is_correct && responseParams.attempts > 5) {
+      return { error: "Max attempts reached. Test failed." };
+    }
+
+    const nextMessage = {
+      role: "assistant",
+      content: responseParams.next_prompt,
+      ...responseParams,
+    };
+    if(responseParams.is_correct){
+      nextMessage.points = getScoreBasedOnAttempts(responseParams.no_of_attempts)
+    }
+    messages.push(nextMessage);
+
+    if (responseParams.is_correct) {
+      model.STAGE = "DIAGNOSIS"; 
+    }
+
+    model.messages = messages;
+    console.log(model,"modeleelel")
+    return model;
+  } catch (error) {
+    console.error("Error in evaluating test:", error);
+    return { error: "An error occurred during the evaluation." };
   }
-  return points;
+};
+
+const gameOver = () => {};
+
+const getScoreBasedOnAttempts = (attemts) => {
+  let MAX_MARKS = 5;
+  return MAX_MARKS - (attemts - 1);
 };

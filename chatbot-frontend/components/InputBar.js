@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Image } from 'react-native';
 import sendIcon from '../assets/send-icon.png';
 
-const InputBar = () => {
+const InputBar = ({handleSendMessage}) => {
   const [message, setMessage] = useState('');
 
-  const sendMessage = () => {
-  };
 
+  const handleSend = () => {
+    if (message.trim()) {
+      handleSendMessage(message);
+      setMessage('');
+    }
+  };
   return (
     <View style={styles.inputContainer}>
       <TextInput
@@ -17,7 +21,7 @@ const InputBar = () => {
         placeholder="Enter your response"
         placeholderTextColor="#9CA3AF"
       />
-      <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
+      <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
         <Image source={sendIcon} style={styles.sendIcon} />
       </TouchableOpacity>
     </View>

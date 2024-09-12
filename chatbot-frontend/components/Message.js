@@ -7,7 +7,7 @@ import PointInfoContainer from "./PointInfoContainer";
 const AssistantTitle = "SENIOR DOCTOR";
 const UserTitle = "YOU";
 
-const Message = ({ role, text, points }) => {
+const Message = ({ role, content, points }) => {
   const isUser = role === "user";
   const isPatient = role === "patient"
 
@@ -36,13 +36,14 @@ const Message = ({ role, text, points }) => {
               styles.doctorPointContainer
             ]}
           >
-            <PointInfoContainer points={points} />
+            <PointInfoContainer points={`${points}`+"/"+"5"+" points"} />
           </View>
         )}
         
         {isUser && <Image source={userlogo} style={styles.userLogo} />}
       </View>}
-      <Text style={styles.messageText}>{text}</Text>
+      <Text style={styles.messageText}>{content}</Text>
+      
     </View>
   );
 };
