@@ -17,9 +17,6 @@ const WinScreen = () => {
 
   let parsedPoints = { lab: 0, diagnosis: 0 };
 
-  console.log(patientDetails,"detailss")
-
-
   try {
     if (points) {
       parsedPoints = JSON.parse(points);
@@ -32,7 +29,7 @@ const WinScreen = () => {
     router.push('/', { params: { newPatient: "new-patient" } });
   };
 
-  if (!fontsLoaded || loading) {
+  if (!fontsLoaded) {
     return <ActivityIndicator />;
   }
 
@@ -40,8 +37,8 @@ const WinScreen = () => {
     <>
       {patientDetails && (
         <Header 
-          name={`MR. ARJUN SHARMA 28 Y/O)`}  
-          points={`10 points`} 
+          name={`MR. ARJUN SHARMA 28 (Y/O)`}  
+          points={`${parsedPoints.lab + parsedPoints.diagnosis} points`} 
         />
       )}
       

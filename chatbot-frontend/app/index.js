@@ -33,7 +33,7 @@ const ChatScreen = () => {
   }`;
 
   useEffect(() => {
-    const newSocket = io.connect(`http://192.168.1.4:8080`, {
+    const newSocket = io.connect(`http://192.168.83.31:8080`, {
       reconnect: true,
     });
     setSocket(newSocket);
